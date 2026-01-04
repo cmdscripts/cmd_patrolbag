@@ -3,6 +3,22 @@ Config = {}
 -- Job Configuration
 Config.JobWhitelist = { 'police' }
 
+Config.Menu = 'contextmenu' -- 'target' or 'contextmenu'
+Config.ContextTrigger = 'marker' -- 'marker' or 'target'
+
+Config.Marker = {
+    type = 2,
+    scale = vec3(0.35, 0.35, 0.35),
+    rotation = vec3(0.0, 0.0, 0.0),
+    direction = vec3(0.0, 0.0, 0.0),
+    color = { 255, 255, 255 },
+    alpha = 180,
+    bobUpAndDown = false,
+    faceCamera = true,
+    rotate = false,
+    drawDistance = 15.0
+}
+
 -- NPC Configuration
 Config.NPC = {
     model = `s_m_y_cop_01`,
