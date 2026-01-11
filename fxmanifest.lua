@@ -22,7 +22,7 @@ server_scripts {
 
 dependencies {
     'ox_lib',
-    'ox_target',
     'ox_inventory',
     'es_extended'
 }
+
