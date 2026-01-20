@@ -1,25 +1,20 @@
 Config = {}
 
--- Job Configuration
 Config.JobWhitelist = { 'police' }
 
-Config.Menu = 'contextmenu' -- 'target' or 'contextmenu'
-Config.ContextTrigger = 'marker' -- 'marker' or 'target'
+Config.Menu = 'contextmenu'
+Config.ContextTrigger = 'marker'
 
 Config.Marker = {
     type = 2,
-    scale = vec3(0.35, 0.35, 0.35),
+    width = 0.35,
+    height = 0.35,
     rotation = vec3(0.0, 0.0, 0.0),
     direction = vec3(0.0, 0.0, 0.0),
-    color = { 255, 255, 255 },
-    alpha = 180,
-    bobUpAndDown = false,
-    faceCamera = true,
-    rotate = false,
+    color = { r = 255, g = 255, b = 255, a = 180 },
     drawDistance = 15.0
 }
 
--- NPC Configuration
 Config.NPC = {
     model = `s_m_y_cop_01`,
     coords = vec4(454.140656, -980.070312, 30.678345, 87.87401),
@@ -27,57 +22,54 @@ Config.NPC = {
     showOpenOption = false
 }
 
--- Bag Configuration
 Config.BagItem = 'patrolbag'
 Config.BagStash = { slots = 50, weight = 50000 }
 Config.OneBagInInventory = true
 Config.PreventBagInBag = true
 
--- Seeding Configuration
 Config.SeedOnFirstOpen = true
 Config.SeedItems = {
-            { name = 'empty_invoice_print', count = 10 },
-            { name = 'roadcone', count = 10 },
-            { name = 'barrier', count = 10 },
-            { name = 'spikestrip', count = 5 },
-            { name = 'zipties', count = 5 },
-            { name = 'sidecutter', count = 2 },
-            { name = 'elastic_bandage', count = 10 },
-            { name = 'tourniquet', count = 5 },
-            { name = 'armor_plate', count = 4 },
-            { name = 'evidence_bag', count = 10 },
-            { name = 'evidence_cleaner', count = 5 },
-            { name = 'breathalyzer', count = 1 },
-            { name = 'radio', count = 1 },
-            { name = 'bandage', count = 1 },
-            { name = 'medikit', count = 1 },
-            
+    { name = 'empty_invoice_print', count = 10 },
+    { name = 'roadcone', count = 10 },
+    { name = 'barrier', count = 10 },
+    { name = 'spikestrip', count = 5 },
+    { name = 'zipties', count = 5 },
+    { name = 'sidecutter', count = 2 },
+    { name = 'elastic_bandage', count = 10 },
+    { name = 'tourniquet', count = 5 },
+    { name = 'armor_plate', count = 4 },
+    { name = 'evidence_bag', count = 10 },
+    { name = 'evidence_cleaner', count = 5 },
+    { name = 'breathalyzer', count = 1 },
+    { name = 'radio', count = 1 },
+    { name = 'bandage', count = 1 },
+    { name = 'medikit', count = 1 }
 }
 
--- Notification Configuration
 Config.Notify = { type = 'inform', pos = 'top-right', ms = 4500 }
 
--- Performance Configuration
 Config.Performance = {
-    bagStatusInterval = 5000, -- ms - How often to check bag status
-    cacheExpiry = 60000, -- ms - How long to cache job checks
-    maxStashes = 500, -- Maximum number of stashes to keep in memory
-    modelRequestTimeout = 10000, -- ms - Timeout for model requests
-    debugMode = false -- Enable debug logging
+    bagStatusInterval = 5000,
+    cacheExpiry = 60000,
+    maxStashes = 500,
+    modelRequestTimeout = 10000,
+    markerTick = 250,
+    debugMode = false
 }
 
--- Security Configuration
 Config.Security = {
-    actionCooldown = 1000, -- ms - Cooldown between actions
-    maxIdentifierRange = { min = 100000, max = 999999 }, -- Range for bag IDs
-    maxAttemptsPerMinute = 10 -- Max actions per player per minute
+    actionCooldown = 1000,
+    maxIdentifierRange = { min = 100000, max = 999999 },
+    maxAttemptsPerMinute = 10
 }
 
--- Text Configuration (easier for translation)
 Config.Text = {
+    npcTitle = 'Patrol Bag',
+    npcMenu = 'Menü',
     npcTake = 'Patrolbag empfangen',
-    npcOpen = 'Patrolbag öffnen', 
+    npcOpen = 'Patrolbag öffnen',
     npcReturn = 'Patrolbag zurückgeben',
+    markerPrompt = '[E] Patrolbag Menü',
     noAccess = 'Kein Zugriff',
     alreadyHave = 'Du hast bereits eine Tasche',
     noSpace = 'Kein Platz',
