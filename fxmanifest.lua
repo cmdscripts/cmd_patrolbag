@@ -2,7 +2,7 @@ fx_version 'cerulean'
 game 'gta5'
 
 author 'cmdscripts'
-version '1.1'
+version '1.1.0'
 
 lua54 'yes'
 
@@ -25,4 +25,5 @@ dependencies {
     'ox_inventory',
     'es_extended'
 }
+
 
