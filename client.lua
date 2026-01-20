@@ -179,7 +179,7 @@ local function startMarkerInteraction()
             if inside ~= inRange then
                 inRange = inside
                 if inRange then
-                    lib.showTextUI(Config.Text.markerPrompt or '[E] Öffnen')
+                    lib.showTextUI(Config.Text.markerPrompt)
                 else
                     lib.hideTextUI()
                 end
@@ -405,3 +405,4 @@ RegisterCommand('patrolbagui', function()
     if not Config.Performance.debugMode then return end
     applyInteractionMode()
 end, false)
+
