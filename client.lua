@@ -61,7 +61,7 @@ local function openNpcContext()
 
     lib.registerContext({
         id = 'patrolbag_npc_menu',
-        title = Config.Text.npcTitle or 'Patrol Bag',
+        title = Config.Text.npcTitle,
         options = options
     })
 
@@ -108,7 +108,6 @@ local function addNpcTargets()
             end
         }
     })
-    debugLog('NPC targets added/refreshed')
 end
 
 local function addNpcContextTarget()
@@ -117,7 +116,7 @@ local function addNpcContextTarget()
         {
             name = 'patrolbag_context',
             icon = 'fa-solid fa-bars',
-            label = Config.Text.npcMenu or 'Menu',
+            label = Config.Text.npcMenu,
             distance = Config.NPC.distance,
             onSelect = function()
                 CreateThread(function()
@@ -127,7 +126,6 @@ local function addNpcContextTarget()
             end
         }
     })
-    debugLog('NPC context target added')
 end
 
 local function stopMarker()
@@ -161,7 +159,7 @@ local function startMarkerInteraction()
                 markerObj:draw()
                 Wait(0)
             else
-                Wait(Config.Performance.markerTick or 250)
+                Wait(Config.Performance.markerTick)
             end
         end
         markerDrawThread = nil
@@ -173,9 +171,9 @@ local function startMarkerInteraction()
             local pcoords = GetEntityCoords(ped)
             local dist = #(pcoords - coords3)
 
-            shouldDraw = dist <= (Config.Marker.drawDistance or 15.0)
+            shouldDraw = dist <= Config.Marker.drawDistance
 
-            local inside = dist <= (Config.NPC.distance or 2.0)
+            local inside = dist <= Config.NPC.distance
             if inside ~= inRange then
                 inRange = inside
                 if inRange then
@@ -192,9 +190,7 @@ local function startMarkerInteraction()
                 end)
             end
 
-            local sleep = Config.Performance.markerTick or 250
-            if inRange then sleep = 0 end
-            Wait(sleep)
+            Wait(inRange and 0 or Config.Performance.markerTick)
         end
         markerChecker = nil
     end)
@@ -209,7 +205,6 @@ function refreshHasBag(force)
     local result = lib.callback.await('cmd_patrolbag:hasBag', false)
     if result ~= hasBag then
         hasBag = result
-        debugLog(('Bag status changed to: %s'):format(tostring(hasBag)))
         if npc and DoesEntityExist(npc) and Config.Menu == 'target' then
             exports.ox_target:removeLocalEntity(npc)
             Wait(100)
@@ -235,7 +230,7 @@ local function applyInteractionMode()
     end
 
     if Config.Menu == 'contextmenu' then
-        if (Config.ContextTrigger or 'marker') == 'target' then
+        if Config.ContextTrigger == 'target' then
             addNpcContextTarget()
         else
             startMarkerInteraction()
@@ -245,31 +240,22 @@ end
 
 local function spawnNpc()
     if npc and DoesEntityExist(npc) then
-        debugLog('NPC already exists, skipping spawn')
         applyInteractionMode()
         return
     end
 
-    debugLog('Spawning NPC...')
     local modelRequested = lib.requestModel(Config.NPC.model, Config.Performance.modelRequestTimeout)
-    if not modelRequested then
-        debugLog('Failed to load NPC model')
-        return
-    end
+    if not modelRequested then return end
 
     local c = Config.NPC.coords
     npc = CreatePed(4, Config.NPC.model, c.x, c.y, c.z - 1.0, c.w, false, true)
-    if not DoesEntityExist(npc) then
-        debugLog('Failed to create NPC entity')
-        return
-    end
+    if not DoesEntityExist(npc) then return end
 
     SetEntityInvincible(npc, true)
     FreezeEntityPosition(npc, true)
     SetBlockingOfNonTemporaryEvents(npc, true)
 
     applyInteractionMode()
-    debugLog('NPC spawned successfully')
 end
 
 local function cleanupNpc()
@@ -277,21 +263,18 @@ local function cleanupNpc()
     if npc and DoesEntityExist(npc) then
         DeleteEntity(npc)
         npc = nil
-        debugLog('NPC cleaned up')
     end
 end
 
 local function startStatusChecker()
     if statusChecker then return end
     statusChecker = CreateThread(function()
-        debugLog('Status checker started')
         while isInitialized do
             Wait(Config.Performance.bagStatusInterval)
             if isInitialized then
                 refreshHasBag()
             end
         end
-        debugLog('Status checker stopped')
     end)
 end
 
@@ -305,13 +288,11 @@ end
 
 local function initialize()
     if isInitialized then return end
-    debugLog('Initializing client...')
     isInitialized = true
     refreshHasBag(true)
     Wait(500)
     spawnNpc()
     startStatusChecker()
-    debugLog(('Client initialized with bag status: %s'):format(tostring(hasBag)))
 end
 
 CreateThread(function()
@@ -324,7 +305,6 @@ end)
 
 AddEventHandler('onResourceStart', function(res)
     if res == GetCurrentResourceName() then
-        debugLog('Resource started, reinitializing...')
         Wait(1000)
         cleanupNpc()
         isInitialized = false
@@ -334,17 +314,12 @@ end)
 
 AddEventHandler('onResourceStop', function(res)
     if res ~= GetCurrentResourceName() then return end
-    debugLog('Resource stopping, cleaning up...')
     stopStatusChecker()
     cleanupNpc()
 end)
 
 RegisterNetEvent('cmd_patrolbag:openClient', function(invId)
-    if not invId or type(invId) ~= 'string' then
-        debugLog('Invalid inventory ID received')
-        return
-    end
-    debugLog(('Opening inventory: %s'):format(invId))
+    if not invId or type(invId) ~= 'string' then return end
     exports.ox_inventory:openInventory('stash', invId)
 end)
 
@@ -366,19 +341,15 @@ RegisterNetEvent('cmd_patrolbag:clientUse', function(slot)
     elseif type(slot) == 'number' then
         slotToUse = slot
     else
-        debugLog('Invalid slot data received')
         return
     end
-    debugLog(('Using bag in slot: %s'):format(slotToUse))
     TriggerServerEvent('cmd_patrolbag:onUse', slotToUse)
 end)
 
 RegisterNetEvent('cmd_patrolbag:state', function(state)
     local newState = state and true or false
     if newState ~= hasBag then
-        local oldState = hasBag
         hasBag = newState
-        debugLog(('Bag state updated from %s to %s'):format(tostring(oldState), tostring(hasBag)))
         lastBagCheck = 0
         if Config.Menu == 'target' and npc and DoesEntityExist(npc) then
             exports.ox_target:removeLocalEntity(npc)
@@ -387,22 +358,3 @@ RegisterNetEvent('cmd_patrolbag:state', function(state)
         end
     end
 end)
-
-RegisterCommand('refreshbag', function()
-    if not Config.Performance.debugMode then return end
-    local oldStatus = hasBag
-    refreshHasBag(true)
-    Wait(100)
-    print(('Bag status: %s -> %s'):format(tostring(oldStatus), tostring(hasBag)))
-    if Config.Menu == 'target' and npc and DoesEntityExist(npc) then
-        exports.ox_target:removeLocalEntity(npc)
-        Wait(100)
-        addNpcTargets()
-    end
-end, false)
-
-RegisterCommand('patrolbagui', function()
-    if not Config.Performance.debugMode then return end
-    applyInteractionMode()
-end, false)
-
