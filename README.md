@@ -1,64 +1,101 @@
 ## [Preview](https://streamable.com/eknoax)
 ## [Support](https://discord.gg/Evd7gvpTyW)
-# ✨ Features
 
-📦 Patrolbag item with its own stash (configurable slots & weight)
+# 🧰 cmd_patrolbag
 
-🧑‍✈️ NPC interaction via ox_target (take, open, return bag)
+A modern, server-authoritative **multi-bag system** for FiveM using **ox_inventory**, **ox_lib**, and **ox_target**.  
+Designed for modders: scalable, performant, and fully config-driven.
 
-# 🔒 Security checks
+---
 
-Anti-spam (cooldowns & rate limits)
+## ✨ Features
 
-Whitelist job restriction (e.g. police)
+📦 **Multiple bag types**
+- Unlimited bag definitions via `Config.Bags`
+- Each bag has its own:
+  - Item name
+  - Label
+  - Stash size & weight
+  - Seed items
+  - Behavior rules (one-per-inventory, bag-in-bag prevention)
 
-Prevents “bag-in-bag” exploits
+🧑‍✈️ **NPC interaction**
+- NPC-based bag management
+- Take / Open / Return bags
+- Dynamic menus that only show valid bag options
+- Supports marker or ox_target interaction
 
-Enforces one bag per player
+📂 **Dedicated stash per bag**
+- Unique stash per bag instance
+- Automatic stash creation on first use
+- Optional seed loot on first open (per bag type)
 
-⚡ Performance optimized with caching, status checker, and memory limits
+---
 
-# 🛠️ Config-driven
+## 🔒 Security
 
-NPC model & location
+- Server-side validation only
+- Anti-spam & rate limiting
+- Job whitelist support (e.g. police)
+- Bag-in-bag exploit prevention (for all bag types)
+- Optional one-bag-per-inventory per bag type
+- Server-owned stash registration
 
-Seed items on first open
+---
 
-Notifications handled server-side
+## ⚡ Performance
 
-Adjustable performance & security settings
+- Statebag-based sync (`cmd_patrolbag:bags`)
+- Minimal callbacks (fallback only)
+- Cached job checks
+- Periodic cleanup of:
+  - Job cache
+  - Cooldowns
+  - Rate-limit counters
+- Configurable performance limits (stash count, ticks, cache expiry)
 
-# 🔄 Automatic state sync when players join
+---
 
-🧹 Maintenance thread for cleanup of cache, cooldowns, and limits
+## 🛠️ Config-driven
 
-# 📂 Requirements
+Fully configurable via `config.lua`:
 
-ox_lib
+- NPC model, position, and interaction mode
+- Unlimited bag definitions
+- Seed items per bag
+- Job whitelist
+- Notifications
+- Security & rate limits
+- Performance tuning
 
-ox_inventory
+No code changes required to add new bag types.
 
-ox_target
+---
 
-es_extended
+## 🔄 Automatic State Sync
 
- # ⚙️ Installation
+- Bag ownership synced via **statebags**
+- Instant client updates on:
+  - Player load
+  - Item changes
+  - Bag issue / return
+- Reliable re-sync on reconnect and late joins
 
-Download the resource and place it in your resources folder
+---
 
-Add to your server.cfg:
+## 🧹 Maintenance
 
-ensure cmd_patrolbag
+- Background maintenance thread:
+  - Clears expired caches
+  - Resets old cooldowns
+  - Keeps memory usage stable
 
+---
 
-Configure config.lua to your needs (jobs, NPC position, items, limits, etc.)
+## ⚙️ Installation
 
-# 📜 Usage
-
-Interact with the NPC to:
-
-Take a patrolbag
-
-Open your patrolbag
-
-Return the patrolbag
+1. Download the resource  
+2. Place it in your `resources` folder  
+3. Add to `server.cfg`:
+   ```cfg
+   ensure cmd_patrolbag
