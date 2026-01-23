@@ -6,7 +6,7 @@ if resourceName ~= 'cmd_patrolbag' then
 end
 
 local npc
-local hasBag = false
+local hasBags = {}
 local lastBagCheck = 0
 local statusChecker
 local markerChecker
@@ -22,42 +22,99 @@ local function debugLog(message)
     end
 end
 
+local function anyBagOwned()
+    for _, v in pairs(hasBags) do
+        if v then return true end
+    end
+    return false
+end
+
+local function ownedBagKeys()
+    local t = {}
+    for key, def in pairs(Config.Bags) do
+        if hasBags[key] then
+            t[#t + 1] = { key = key, def = def }
+        end
+    end
+    table.sort(t, function(a, b) return (a.def.label or a.key) < (b.def.label or b.key) end)
+    return t
+end
+
+local function notOwnedBagKeys()
+    local t = {}
+    for key, def in pairs(Config.Bags) do
+        if not hasBags[key] then
+            t[#t + 1] = { key = key, def = def }
+        end
+    end
+    table.sort(t, function(a, b) return (a.def.label or a.key) < (b.def.label or b.key) end)
+    return t
+end
+
+local function openChooseBagContext(title, list, onPick)
+    if not list or #list == 0 then return end
+    local options = {}
+    for i = 1, #list do
+        local entry = list[i]
+        options[#options + 1] = {
+            title = entry.def.label or entry.key,
+            icon = 'fa-solid fa-briefcase',
+            onSelect = function()
+                onPick(entry.key)
+            end
+        }
+    end
+    lib.registerContext({
+        id = 'patrolbag_choose_bag',
+        title = title,
+        options = options
+    })
+    lib.showContext('patrolbag_choose_bag')
+end
+
 local function openNpcContext()
     local options = {}
+    local canTake = notOwnedBagKeys()
+    local canOpen = ownedBagKeys()
+    local canReturn = ownedBagKeys()
 
-    if not hasBag then
+    if #canTake > 0 then
         options[#options + 1] = {
             title = Config.Text.npcTake,
             icon = 'fa-solid fa-briefcase',
             onSelect = function()
-                TriggerServerEvent('cmd_patrolbag:issue')
+                openChooseBagContext(Config.Text.chooseBag, canTake, function(bagKey)
+                    TriggerServerEvent('cmd_patrolbag:issue', bagKey)
+                end)
             end
         }
     end
 
-    if hasBag and Config.NPC.showOpenOption then
+    if Config.NPC.showOpenOption and #canOpen > 0 then
         options[#options + 1] = {
             title = Config.Text.npcOpen,
             icon = 'fa-solid fa-folder-open',
             onSelect = function()
-                TriggerServerEvent('cmd_patrolbag:openMy')
+                openChooseBagContext(Config.Text.chooseBag, canOpen, function(bagKey)
+                    TriggerServerEvent('cmd_patrolbag:openMy', bagKey)
+                end)
             end
         }
     end
 
-    if hasBag then
+    if #canReturn > 0 then
         options[#options + 1] = {
             title = Config.Text.npcReturn,
             icon = 'fa-solid fa-rotate-left',
             onSelect = function()
-                TriggerServerEvent('cmd_patrolbag:return')
+                openChooseBagContext(Config.Text.chooseBag, canReturn, function(bagKey)
+                    TriggerServerEvent('cmd_patrolbag:return', bagKey)
+                end)
             end
         }
     end
 
-    if #options == 0 then
-        return
-    end
+    if #options == 0 then return end
 
     lib.registerContext({
         id = 'patrolbag_npc_menu',
@@ -66,48 +123,6 @@ local function openNpcContext()
     })
 
     lib.showContext('patrolbag_npc_menu')
-end
-
-local function addNpcTargets()
-    if not npc or not DoesEntityExist(npc) then return end
-    exports.ox_target:addLocalEntity(npc, {
-        {
-            name = 'patrolbag_take',
-            icon = 'fa-solid fa-briefcase',
-            label = Config.Text.npcTake,
-            distance = Config.NPC.distance,
-            canInteract = function()
-                return not hasBag
-            end,
-            onSelect = function()
-                TriggerServerEvent('cmd_patrolbag:issue')
-            end
-        },
-        {
-            name = 'patrolbag_open',
-            icon = 'fa-solid fa-folder-open',
-            label = Config.Text.npcOpen,
-            distance = Config.NPC.distance,
-            canInteract = function()
-                return hasBag and Config.NPC.showOpenOption
-            end,
-            onSelect = function()
-                TriggerServerEvent('cmd_patrolbag:openMy')
-            end
-        },
-        {
-            name = 'patrolbag_return',
-            icon = 'fa-solid fa-rotate-left',
-            label = Config.Text.npcReturn,
-            distance = Config.NPC.distance,
-            canInteract = function()
-                return hasBag
-            end,
-            onSelect = function()
-                TriggerServerEvent('cmd_patrolbag:return')
-            end
-        }
-    })
 end
 
 local function addNpcContextTarget()
@@ -120,7 +135,7 @@ local function addNpcContextTarget()
             distance = Config.NPC.distance,
             onSelect = function()
                 CreateThread(function()
-                    refreshHasBag(true)
+                    refreshHasBags(true)
                     openNpcContext()
                 end)
             end
@@ -185,7 +200,7 @@ local function startMarkerInteraction()
 
             if inRange and IsControlJustPressed(0, 38) then
                 CreateThread(function()
-                    refreshHasBag(true)
+                    refreshHasBags(true)
                     openNpcContext()
                 end)
             end
@@ -196,20 +211,22 @@ local function startMarkerInteraction()
     end)
 end
 
-function refreshHasBag(force)
+function refreshHasBags(force)
     local now = GetGameTimer()
     if not force and (now - lastBagCheck) < Config.Performance.bagStatusInterval then
         return
     end
     lastBagCheck = now
-    local result = lib.callback.await('cmd_patrolbag:hasBag', false)
-    if result ~= hasBag then
-        hasBag = result
-        if npc and DoesEntityExist(npc) and Config.Menu == 'target' then
-            exports.ox_target:removeLocalEntity(npc)
-            Wait(100)
-            addNpcTargets()
-        end
+
+    local state = LocalPlayer and LocalPlayer.state and LocalPlayer.state['cmd_patrolbag:bags']
+    if type(state) == 'table' then
+        hasBags = state
+        return
+    end
+
+    local result = lib.callback.await('cmd_patrolbag:hasBags', false)
+    if type(result) == 'table' then
+        hasBags = result
     end
 end
 
@@ -225,7 +242,7 @@ local function applyInteractionMode()
     if not npc or not DoesEntityExist(npc) then return end
 
     if Config.Menu == 'target' then
-        addNpcTargets()
+        addNpcContextTarget()
         return
     end
 
@@ -272,7 +289,7 @@ local function startStatusChecker()
         while isInitialized do
             Wait(Config.Performance.bagStatusInterval)
             if isInitialized then
-                refreshHasBag()
+                refreshHasBags()
             end
         end
     end)
@@ -289,7 +306,7 @@ end
 local function initialize()
     if isInitialized then return end
     isInitialized = true
-    refreshHasBag(true)
+    refreshHasBags(true)
     Wait(500)
     spawnNpc()
     startStatusChecker()
@@ -346,15 +363,21 @@ RegisterNetEvent('cmd_patrolbag:clientUse', function(slot)
     TriggerServerEvent('cmd_patrolbag:onUse', slotToUse)
 end)
 
-RegisterNetEvent('cmd_patrolbag:state', function(state)
-    local newState = state and true or false
-    if newState ~= hasBag then
-        hasBag = newState
+RegisterNetEvent('cmd_patrolbag:state', function(payload, state)
+    if type(payload) == 'table' then
+        hasBags = payload
         lastBagCheck = 0
-        if Config.Menu == 'target' and npc and DoesEntityExist(npc) then
-            exports.ox_target:removeLocalEntity(npc)
-            Wait(100)
-            addNpcTargets()
-        end
+        return
     end
+    if type(payload) == 'string' then
+        hasBags[payload] = state and true or false
+        lastBagCheck = 0
+        return
+    end
+end)
+
+AddStateBagChangeHandler('cmd_patrolbag:bags', nil, function(_, _, value)
+    if type(value) ~= 'table' then return end
+    hasBags = value
+    lastBagCheck = 0
 end)

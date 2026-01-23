@@ -22,28 +22,48 @@ Config.NPC = {
     showOpenOption = false
 }
 
-Config.BagItem = 'patrolbag'
-Config.BagStash = { slots = 50, weight = 50000 }
-Config.OneBagInInventory = true
-Config.PreventBagInBag = true
+Config.Bags = {
+    patrol = {
+        label = 'Patrol Bag',
+        item = 'patrolbag',
+        stashPrefix = 'patrolbag:',
+        stash = { slots = 50, weight = 50000 },
+        onePerInventory = true,
+        preventBagInBag = true,
+        seedOnFirstOpen = true,
+        seedItems = {
+            { name = 'empty_invoice_print', count = 10 },
+            { name = 'roadcone', count = 10 },
+            { name = 'barrier', count = 10 },
+            { name = 'spikestrip', count = 5 },
+            { name = 'zipties', count = 5 },
+            { name = 'sidecutter', count = 2 },
+            { name = 'elastic_bandage', count = 10 },
+            { name = 'tourniquet', count = 5 },
+            { name = 'armor_plate', count = 4 },
+            { name = 'evidence_bag', count = 10 },
+            { name = 'evidence_cleaner', count = 5 },
+            { name = 'breathalyzer', count = 1 },
+            { name = 'radio', count = 1 },
+            { name = 'bandage', count = 1 },
+            { name = 'medikit', count = 1 }
+        }
+    },
 
-Config.SeedOnFirstOpen = true
-Config.SeedItems = {
-    { name = 'empty_invoice_print', count = 10 },
-    { name = 'roadcone', count = 10 },
-    { name = 'barrier', count = 10 },
-    { name = 'spikestrip', count = 5 },
-    { name = 'zipties', count = 5 },
-    { name = 'sidecutter', count = 2 },
-    { name = 'elastic_bandage', count = 10 },
-    { name = 'tourniquet', count = 5 },
-    { name = 'armor_plate', count = 4 },
-    { name = 'evidence_bag', count = 10 },
-    { name = 'evidence_cleaner', count = 5 },
-    { name = 'breathalyzer', count = 1 },
-    { name = 'radio', count = 1 },
-    { name = 'bandage', count = 1 },
-    { name = 'medikit', count = 1 }
+    swat = {
+        label = 'SWAT Bag',
+        item = 'swatbag',
+        stashPrefix = 'swatbag:',
+        stash = { slots = 70, weight = 90000 },
+        onePerInventory = true,
+        preventBagInBag = true,
+        seedOnFirstOpen = true,
+        seedItems = {
+            { name = 'bandage', count = 10 },
+            { name = 'armor_plate', count = 8 },
+            { name = 'radio', count = 1 }
+        }
+    }
 }
 
 Config.Notify = { type = 'inform', pos = 'top-right', ms = 4500 }
@@ -64,14 +84,14 @@ Config.Security = {
 }
 
 Config.Text = {
-    npcTitle = 'Patrol Bag',
+    npcTitle = 'Bags',
     npcMenu = 'Menü',
-    npcTake = 'Patrolbag empfangen',
-    npcOpen = 'Patrolbag öffnen',
-    npcReturn = 'Patrolbag zurückgeben',
-    markerPrompt = '[E] Patrolbag Menü',
+    npcTake = 'Tasche empfangen',
+    npcOpen = 'Tasche öffnen',
+    npcReturn = 'Tasche zurückgeben',
+    markerPrompt = '[E] Bag Menü',
     noAccess = 'Kein Zugriff',
-    alreadyHave = 'Du hast bereits eine Tasche',
+    alreadyHave = 'Du hast diese Tasche bereits',
     noSpace = 'Kein Platz',
     issued = 'Ausgegeben',
     notFound = 'Du hast keine Tasche',
@@ -80,5 +100,6 @@ Config.Text = {
     bagInBag = 'Tasche in Tasche nicht erlaubt',
     onlyOneBag = 'Nur eine Tasche erlaubt',
     cooldown = 'Die Reißverschluss klemmt',
-    rateLimited = 'Die Tasche klemmt'
+    rateLimited = 'Die Tasche klemmt',
+    chooseBag = 'Tasche auswählen'
 }
