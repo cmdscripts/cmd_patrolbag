@@ -1,5 +1,5 @@
 local resourceName = GetCurrentResourceName()
-if resourceName ~= 'cmd_patrolbag' then
+if resourceName ~= 'cmdPatrolbag' then
     print('^1[SECURITY] The resource must be named "cmd_patrolbag"! Current: ' .. resourceName .. '^0')
     StopResource(resourceName)
     return
@@ -381,3 +381,4 @@ AddStateBagChangeHandler('cmd_patrolbag:bags', nil, function(_, _, value)
     hasBags = value
     lastBagCheck = 0
 end)
+
