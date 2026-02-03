@@ -471,10 +471,12 @@ AddEventHandler('esx:playerLoaded', function(src)
     end)
 end)
 
-AddEventHandler('playerJoining', function(src)
+AddEventHandler('onResourceStart', function(res)
+    if res ~= GetCurrentResourceName() then return end
     CreateThread(function()
-        Wait(5000)
-        pushBagState(src)
+        Wait(2000)
+        for _, src in ipairs(GetPlayers()) do
+            pushBagState(tonumber(src))
+        end
     end)
 end)
-
