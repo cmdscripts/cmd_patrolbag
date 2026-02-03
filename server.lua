@@ -1,6 +1,6 @@
 local resourceName = GetCurrentResourceName()
 if resourceName ~= 'cmdPatrolbag' then
-    print('^1[SECURITY] The resource must be named "cmd_patrolbag"! Current: ' .. resourceName .. '^0')
+    print('^1 The resource must be named "cmdPatrolbag"! Current: ' .. resourceName .. '^0')
     StopResource(resourceName)
     return
 end
@@ -480,3 +480,4 @@ AddEventHandler('onResourceStart', function(res)
         end
     end)
 end)
+
