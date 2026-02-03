@@ -1,221 +1,19 @@
 local resourceName = GetCurrentResourceName()
 if resourceName ~= 'cmdPatrolbag' then
-    print('^1 The resource must be named "cmdPatrolbag"! Current: ' .. resourceName .. '^0')
+    print('^1[SECURITY] The resource must be named "cmdPatrolbag"! Current: ' .. resourceName .. '^0')
     StopResource(resourceName)
     return
 end
 
-local npc
 local hasBags = {}
 local lastBagCheck = 0
-local statusChecker
-local markerChecker
-local markerDrawThread
-local markerObj
-local isInitialized = false
-local inRange = false
-local shouldDraw = false
+local spawned = {}
+local activeHelp = false
 
-local function debugLog(message)
-    if Config.Performance.debugMode then
-        print(('[PATROLBAG-CLIENT] %s'):format(message))
-    end
-end
-
-local function anyBagOwned()
-    for _, v in pairs(hasBags) do
-        if v then return true end
-    end
-    return false
-end
-
-local function ownedBagKeys()
-    local t = {}
-    for key, def in pairs(Config.Bags) do
-        if hasBags[key] then
-            t[#t + 1] = { key = key, def = def }
-        end
-    end
-    table.sort(t, function(a, b) return (a.def.label or a.key) < (b.def.label or b.key) end)
-    return t
-end
-
-local function notOwnedBagKeys()
-    local t = {}
-    for key, def in pairs(Config.Bags) do
-        if not hasBags[key] then
-            t[#t + 1] = { key = key, def = def }
-        end
-    end
-    table.sort(t, function(a, b) return (a.def.label or a.key) < (b.def.label or b.key) end)
-    return t
-end
-
-local function openChooseBagContext(title, list, onPick)
-    if not list or #list == 0 then return end
-    local options = {}
-    for i = 1, #list do
-        local entry = list[i]
-        options[#options + 1] = {
-            title = entry.def.label or entry.key,
-            icon = 'fa-solid fa-briefcase',
-            onSelect = function()
-                onPick(entry.key)
-            end
-        }
-    end
-    lib.registerContext({
-        id = 'patrolbag_choose_bag',
-        title = title,
-        options = options
-    })
-    lib.showContext('patrolbag_choose_bag')
-end
-
-local function openNpcContext()
-    local options = {}
-    local canTake = notOwnedBagKeys()
-    local canOpen = ownedBagKeys()
-    local canReturn = ownedBagKeys()
-
-    if #canTake > 0 then
-        options[#options + 1] = {
-            title = Config.Text.npcTake,
-            icon = 'fa-solid fa-briefcase',
-            onSelect = function()
-                openChooseBagContext(Config.Text.chooseBag, canTake, function(bagKey)
-                    TriggerServerEvent('cmd_patrolbag:issue', bagKey)
-                end)
-            end
-        }
-    end
-
-    if Config.NPC.showOpenOption and #canOpen > 0 then
-        options[#options + 1] = {
-            title = Config.Text.npcOpen,
-            icon = 'fa-solid fa-folder-open',
-            onSelect = function()
-                openChooseBagContext(Config.Text.chooseBag, canOpen, function(bagKey)
-                    TriggerServerEvent('cmd_patrolbag:openMy', bagKey)
-                end)
-            end
-        }
-    end
-
-    if #canReturn > 0 then
-        options[#options + 1] = {
-            title = Config.Text.npcReturn,
-            icon = 'fa-solid fa-rotate-left',
-            onSelect = function()
-                openChooseBagContext(Config.Text.chooseBag, canReturn, function(bagKey)
-                    TriggerServerEvent('cmd_patrolbag:return', bagKey)
-                end)
-            end
-        }
-    end
-
-    if #options == 0 then return end
-
-    lib.registerContext({
-        id = 'patrolbag_npc_menu',
-        title = Config.Text.npcTitle,
-        options = options
-    })
-
-    lib.showContext('patrolbag_npc_menu')
-end
-
-local function addNpcContextTarget()
-    if not npc or not DoesEntityExist(npc) then return end
-    exports.ox_target:addLocalEntity(npc, {
-        {
-            name = 'patrolbag_context',
-            icon = 'fa-solid fa-bars',
-            label = Config.Text.npcMenu,
-            distance = Config.NPC.distance,
-            onSelect = function()
-                CreateThread(function()
-                    refreshHasBags(true)
-                    openNpcContext()
-                end)
-            end
-        }
-    })
-end
-
-local function stopMarker()
-    inRange = false
-    shouldDraw = false
-    lib.hideTextUI()
-    markerObj = nil
-    markerChecker = nil
-    markerDrawThread = nil
-end
-
-local function startMarkerInteraction()
-    if markerChecker or markerDrawThread then return end
-
-    local c = Config.NPC.coords
-    local coords3 = vec3(c.x, c.y, c.z)
-
-    markerObj = lib.marker.new({
-        type = Config.Marker.type,
-        coords = coords3,
-        width = Config.Marker.width,
-        height = Config.Marker.height,
-        color = Config.Marker.color,
-        direction = Config.Marker.direction,
-        rotation = Config.Marker.rotation
-    })
-
-    markerDrawThread = CreateThread(function()
-        while isInitialized and markerObj do
-            if shouldDraw then
-                markerObj:draw()
-                Wait(0)
-            else
-                Wait(Config.Performance.markerTick)
-            end
-        end
-        markerDrawThread = nil
-    end)
-
-    markerChecker = CreateThread(function()
-        while isInitialized and markerObj do
-            local ped = PlayerPedId()
-            local pcoords = GetEntityCoords(ped)
-            local dist = #(pcoords - coords3)
-
-            shouldDraw = dist <= Config.Marker.drawDistance
-
-            local inside = dist <= Config.NPC.distance
-            if inside ~= inRange then
-                inRange = inside
-                if inRange then
-                    lib.showTextUI(Config.Text.markerPrompt)
-                else
-                    lib.hideTextUI()
-                end
-            end
-
-            if inRange and IsControlJustPressed(0, 38) then
-                CreateThread(function()
-                    refreshHasBags(true)
-                    openNpcContext()
-                end)
-            end
-
-            Wait(inRange and 0 or Config.Performance.markerTick)
-        end
-        markerChecker = nil
-    end)
-end
-
-function refreshHasBags(force)
+local function refreshHasBags(force)
     local now = GetGameTimer()
-    if not force and (now - lastBagCheck) < Config.Performance.bagStatusInterval then
-        return
-    end
+    local interval = (Config.Performance and Config.Performance.bagStatusInterval) or 60000
+    if not force and (now - lastBagCheck) < interval then return end
     lastBagCheck = now
 
     local state = LocalPlayer and LocalPlayer.state and LocalPlayer.state['cmd_patrolbag:bags']
@@ -230,152 +28,203 @@ function refreshHasBags(force)
     end
 end
 
-local function removeNpcInteractions()
-    if npc and DoesEntityExist(npc) then
-        exports.ox_target:removeLocalEntity(npc)
-    end
-    stopMarker()
-end
+local function spawnPointEntity(point)
+    local e = point.entity
+    if not e or e.kind == 'marker' then return end
+    if spawned[point.id] and DoesEntityExist(spawned[point.id]) then return end
 
-local function applyInteractionMode()
-    removeNpcInteractions()
-    if not npc or not DoesEntityExist(npc) then return end
+    lib.requestModel(e.model, (Config.Performance and Config.Performance.modelRequestTimeout) or 10000)
+    local c = point.coords
 
-    if Config.Menu == 'target' then
-        addNpcContextTarget()
+    if e.kind == 'ped' then
+        local ped = CreatePed(4, e.model, c.x, c.y, c.z + (e.offsetZ or 0.0), c.w, false, true)
+        if not DoesEntityExist(ped) then return end
+        if e.invincible then SetEntityInvincible(ped, true) end
+        if e.freeze then FreezeEntityPosition(ped, true) end
+        SetBlockingOfNonTemporaryEvents(ped, true)
+        spawned[point.id] = ped
         return
     end
 
-    if Config.Menu == 'contextmenu' then
-        if Config.ContextTrigger == 'target' then
-            addNpcContextTarget()
-        else
-            startMarkerInteraction()
-        end
+    if e.kind == 'prop' then
+        local obj = CreateObject(e.model, c.x, c.y, c.z + (e.offsetZ or 0.0), false, false, false)
+        if not DoesEntityExist(obj) then return end
+        SetEntityHeading(obj, c.w)
+        if e.invincible then SetEntityInvincible(obj, true) end
+        if e.freeze then FreezeEntityPosition(obj, true) end
+        spawned[point.id] = obj
     end
 end
 
-local function spawnNpc()
-    if npc and DoesEntityExist(npc) then
-        applyInteractionMode()
-        return
+local function ensureTargetEntity(point)
+    if not Config.Interaction.target.enabled then return end
+    if not point.target or not point.target.enabled then return end
+    if spawned['t_' .. point.id] and DoesEntityExist(spawned['t_' .. point.id]) then return end
+    if GetResourceState('ox_target') ~= 'started' then return end
+
+    lib.requestModel(point.target.model, (Config.Performance and Config.Performance.modelRequestTimeout) or 10000)
+    local c = point.coords
+    local obj = CreateObject(point.target.model, c.x, c.y, c.z + (point.target.offsetZ or 0.0), false, false, false)
+    if not DoesEntityExist(obj) then return end
+
+    SetEntityHeading(obj, c.w)
+    FreezeEntityPosition(obj, true)
+    SetEntityInvincible(obj, true)
+
+    if point.target.invisible then
+        SetEntityAlpha(obj, 0, false)
+        SetEntityCollision(obj, false, false)
     end
 
-    local modelRequested = lib.requestModel(Config.NPC.model, Config.Performance.modelRequestTimeout)
-    if not modelRequested then return end
+    spawned['t_' .. point.id] = obj
 
-    local c = Config.NPC.coords
-    npc = CreatePed(4, Config.NPC.model, c.x, c.y, c.z - 1.0, c.w, false, true)
-    if not DoesEntityExist(npc) then return end
-
-    SetEntityInvincible(npc, true)
-    FreezeEntityPosition(npc, true)
-    SetBlockingOfNonTemporaryEvents(npc, true)
-
-    applyInteractionMode()
-end
-
-local function cleanupNpc()
-    removeNpcInteractions()
-    if npc and DoesEntityExist(npc) then
-        DeleteEntity(npc)
-        npc = nil
-    end
-end
-
-local function startStatusChecker()
-    if statusChecker then return end
-    statusChecker = CreateThread(function()
-        while isInitialized do
-            Wait(Config.Performance.bagStatusInterval)
-            if isInitialized then
-                refreshHasBags()
+    exports.ox_target:addLocalEntity(obj, {
+        {
+            name = 'patrolbag_point_' .. point.id,
+            icon = 'fa-solid fa-briefcase',
+            label = point.label,
+            distance = Config.Interaction.target.distance,
+            onSelect = function()
+                refreshHasBags(true)
+                TriggerEvent('cmd_patrolbag:openPoint', point.id)
             end
+        }
+    })
+end
+
+local function buildSubMenu(id, title, bagKeys, predicate, onPick)
+    local options = {}
+    for i = 1, #bagKeys do
+        local k = bagKeys[i]
+        local def = Config.Bags[k]
+        if def and predicate(k) then
+            options[#options + 1] = {
+                title = def.label or k,
+                icon = 'fa-solid fa-briefcase',
+                onSelect = function()
+                    onPick(k)
+                end
+            }
         end
-    end)
+    end
+    if #options == 0 then
+        Config.UI.Notify(title, 'Nichts verfügbar', 'error')
+        return false
+    end
+    lib.registerContext({ id = id, title = title, options = options })
+    lib.showContext(id)
+    return true
 end
 
-local function stopStatusChecker()
-    isInitialized = false
-    statusChecker = nil
-    markerChecker = nil
-    markerDrawThread = nil
-    markerObj = nil
-end
+RegisterNetEvent('cmd_patrolbag:openPoint', function(pointId)
+    if type(pointId) ~= 'string' then return end
+    local res = lib.callback.await('cmd_patrolbag:getPointMenu', false, pointId)
+    if not res then return end
+    if res.ok ~= true then
+        if res.msg then Config.UI.Notify('Bags', res.msg, 'error') end
+        return
+    end
 
-local function initialize()
-    if isInitialized then return end
-    isInitialized = true
-    refreshHasBags(true)
-    Wait(500)
-    spawnNpc()
-    startStatusChecker()
-end
+    local title = res.title or 'Bags'
+    local keys = res.bags or {}
+
+    local options = {
+        {
+            title = 'Tasche entnehmen',
+            icon = 'fa-solid fa-plus',
+            onSelect = function()
+                buildSubMenu('patrolbag_take_' .. pointId, title, keys, function(k) return not hasBags[k] end, function(k)
+                    lib.callback.await('cmd_patrolbag:issueFromPoint', false, pointId, k)
+                    refreshHasBags(true)
+                end)
+            end
+        },
+        {
+            title = 'Tasche öffnen',
+            icon = 'fa-solid fa-folder-open',
+            onSelect = function()
+                buildSubMenu('patrolbag_open_' .. pointId, title, keys, function(k) return hasBags[k] end, function(k)
+                    lib.callback.await('cmd_patrolbag:openFromPoint', false, pointId, k)
+                end)
+            end
+        },
+        {
+            title = 'Tasche abgeben',
+            icon = 'fa-solid fa-rotate-left',
+            onSelect = function()
+                buildSubMenu('patrolbag_ret_' .. pointId, title, keys, function(k) return hasBags[k] end, function(k)
+                    lib.callback.await('cmd_patrolbag:returnFromPoint', false, pointId, k)
+                    refreshHasBags(true)
+                end)
+            end
+        }
+    }
+
+    lib.registerContext({ id = 'patrolbag_point_' .. pointId, title = title, options = options })
+    lib.showContext('patrolbag_point_' .. pointId)
+end)
 
 local function boot()
-    if isInitialized then return end
     while not NetworkIsSessionStarted() do Wait(100) end
     while not DoesEntityExist(PlayerPedId()) do Wait(100) end
-    Wait(500)
-    initialize()
+    refreshHasBags(true)
+
+    for i = 1, #Config.Points do
+        local p = Config.Points[i]
+        spawnPointEntity(p)
+        ensureTargetEntity(p)
+
+        local pos = vec3(p.coords.x, p.coords.y, p.coords.z)
+        lib.zones.sphere({
+            coords = pos,
+            radius = p.radius or 2.0,
+            onEnter = function()
+                if Config.Interaction.mode == 'marker' then
+                    activeHelp = true
+                    Config.UI.HelpNotify('Drücke ~INPUT_CONTEXT~ um zu interagieren')
+                end
+            end,
+            onExit = function()
+                if activeHelp then
+                    activeHelp = false
+                    Config.UI.HideHelpNotify()
+                end
+            end,
+            inside = function()
+                if Config.Interaction.mode ~= 'marker' then
+                    Wait((Config.Interaction.markerTick or 250))
+                    return
+                end
+
+                local ped = PlayerPedId()
+                local pc = GetEntityCoords(ped)
+                local dist = #(pc - pos)
+
+                if dist <= (Config.Interaction.drawDistance or 25.0) then
+                    local m = Config.Interaction.marker
+                    DrawMarker(m.type, pos.x, pos.y, pos.z, m.direction.x, m.direction.y, m.direction.z, m.rotation.x, m.rotation.y, m.rotation.z, m.width, m.width, m.height, m.color.r, m.color.g, m.color.b, m.color.a, false, true, 2, nil, nil, false)
+                end
+
+                if IsControlJustPressed(0, Config.Interaction.key or 38) then
+                    refreshHasBags(true)
+                    TriggerEvent('cmd_patrolbag:openPoint', p.id)
+                end
+
+                Wait(0)
+            end
+        })
+    end
 end
 
 CreateThread(boot)
-
-AddEventHandler('onResourceStart', function(res)
-    if res ~= GetCurrentResourceName() then return end
-    CreateThread(function()
-        cleanupNpc()
-        isInitialized = false
-        boot()
-    end)
-end)
-
-AddEventHandler('onResourceStop', function(res)
-    if res ~= GetCurrentResourceName() then return end
-    stopStatusChecker()
-    cleanupNpc()
-end)
 
 RegisterNetEvent('cmd_patrolbag:openClient', function(invId)
     if not invId or type(invId) ~= 'string' then return end
     exports.ox_inventory:openInventory('stash', invId)
 end)
 
-RegisterNetEvent('cmd_patrolbag:notify', function(title, description, type)
-    if not title or not description then return end
-    lib.notify({
-        title = title,
-        description = description,
-        type = type or Config.Notify.type,
-        position = Config.Notify.pos,
-        duration = Config.Notify.ms
-    })
-end)
-
-RegisterNetEvent('cmd_patrolbag:clientUse', function(slot)
-    local slotToUse
-    if type(slot) == 'table' and slot.slot then
-        slotToUse = slot.slot
-    elseif type(slot) == 'number' then
-        slotToUse = slot
-    else
-        return
-    end
-    TriggerServerEvent('cmd_patrolbag:onUse', slotToUse)
-end)
-
-RegisterNetEvent('cmd_patrolbag:state', function(payload, state)
-    if type(payload) == 'table' then
-        hasBags = payload
-        lastBagCheck = 0
-        return
-    end
-    if type(payload) == 'string' then
-        hasBags[payload] = state and true or false
-        lastBagCheck = 0
-        return
-    end
+RegisterNetEvent('cmd_patrolbag:notify', function(title, description, kind)
+    Config.UI.Notify(title, description, kind)
 end)
 
 AddStateBagChangeHandler('cmd_patrolbag:bags', nil, function(_, _, value)
@@ -383,6 +232,3 @@ AddStateBagChangeHandler('cmd_patrolbag:bags', nil, function(_, _, value)
     hasBags = value
     lastBagCheck = 0
 end)
-
-
-
