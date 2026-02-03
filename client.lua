@@ -1,6 +1,6 @@
 local resourceName = GetCurrentResourceName()
 if resourceName ~= 'cmdPatrolbag' then
-    print('^1[SECURITY] The resource must be named "cmd_patrolbag"! Current: ' .. resourceName .. '^0')
+    print('^1 The resource must be named "cmdPatrolbag"! Current: ' .. resourceName .. '^0')
     StopResource(resourceName)
     return
 end
@@ -320,14 +320,25 @@ CreateThread(function()
     initialize()
 end)
 
+local function boot()
+    if isInitialized then return end
+    while not NetworkIsSessionStarted() do Wait(100) end
+    while not DoesEntityExist(PlayerPedId()) do Wait(100) end
+    Wait(500)
+    initialize()
+end
+
+CreateThread(boot)
+
 AddEventHandler('onResourceStart', function(res)
-    if res == GetCurrentResourceName() then
-        Wait(1000)
+    if res ~= GetCurrentResourceName() then return end
+    CreateThread(function()
         cleanupNpc()
         isInitialized = false
-        initialize()
-    end
+        boot()
+    end)
 end)
+
 
 AddEventHandler('onResourceStop', function(res)
     if res ~= GetCurrentResourceName() then return end
@@ -381,4 +392,5 @@ AddStateBagChangeHandler('cmd_patrolbag:bags', nil, function(_, _, value)
     hasBags = value
     lastBagCheck = 0
 end)
+
 
