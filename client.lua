@@ -312,14 +312,6 @@ local function initialize()
     startStatusChecker()
 end
 
-CreateThread(function()
-    while not NetworkIsSessionStarted() do
-        Wait(100)
-    end
-    Wait(1000)
-    initialize()
-end)
-
 local function boot()
     if isInitialized then return end
     while not NetworkIsSessionStarted() do Wait(100) end
@@ -338,7 +330,6 @@ AddEventHandler('onResourceStart', function(res)
         boot()
     end)
 end)
-
 
 AddEventHandler('onResourceStop', function(res)
     if res ~= GetCurrentResourceName() then return end
@@ -392,5 +383,6 @@ AddStateBagChangeHandler('cmd_patrolbag:bags', nil, function(_, _, value)
     hasBags = value
     lastBagCheck = 0
 end)
+
 
 
