@@ -1,9 +1,5 @@
 fx_version 'cerulean'
 game 'gta5'
-
-author 'cmdscripts'
-version '1.3.0'
-
 lua54 'yes'
 
 shared_scripts {
@@ -16,7 +12,6 @@ client_scripts {
 }
 
 server_scripts {
-    '@oxmysql/lib/MySQL.lua',
     'server.lua'
 }
 
@@ -25,7 +20,3 @@ dependencies {
     'ox_inventory',
     'es_extended'
 }
-
-
-
-

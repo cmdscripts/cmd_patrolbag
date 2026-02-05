@@ -71,40 +71,56 @@ Config.JobWhitelist = { 'police', 'ambulance' }
 
 Config.Bags = {
     patrolbag = {
-        label = 'Patrolbag',
+        label = 'Patrol Bag',
         item = 'patrolbag',
-        stashPrefix = 'PBG-',
+        stashPrefix = 'pbg_patrol_',
         onePerInventory = true,
-        seedOnFirstOpen = false,
-        seedItems = {},
-        stash = { slots = 40, weight = 25000 }
+        stash = { slots = 25, weight = 25000 },
+        seedOnFirstOpen = true,
+        seedItems = {
+            { name = 'radio', count = 1 },
+            { name = 'handcuffs', count = 2 },
+            { name = 'bandage', count = 5 }
+        }
     },
+
     firstaid = {
-        label = 'First Aid Kit',
+        label = 'Erste Hilfe Tasche',
         item = 'firstaid',
-        stashPrefix = 'FAK-',
+        stashPrefix = 'pbg_aid_',
         onePerInventory = true,
-        seedOnFirstOpen = false,
-        seedItems = {},
-        stash = { slots = 20, weight = 10000 }
+        stash = { slots = 20, weight = 20000 },
+        seedOnFirstOpen = true,
+        seedItems = {
+            { name = 'bandage', count = 10 },
+            { name = 'medikit', count = 2 }
+        }
     },
+
     manv = {
         label = 'MANV Tasche',
-        item = 'manvbag',
-        stashPrefix = 'MANV-',
+        item = 'manv',
+        stashPrefix = 'pbg_manv_',
         onePerInventory = true,
-        seedOnFirstOpen = false,
-        seedItems = {},
-        stash = { slots = 60, weight = 40000 }
+        stash = { slots = 40, weight = 40000 },
+        seedOnFirstOpen = true,
+        seedItems = {
+            { name = 'bandage', count = 20 },
+            { name = 'medikit', count = 6 },
+            { name = 'painkillers', count = 10 }
+        }
     },
+
     kfz_kit = {
         label = 'KFZ Verbandkasten',
         item = 'kfz_kit',
-        stashPrefix = 'KFZ-',
+        stashPrefix = 'pbg_kfz_',
         onePerInventory = true,
-        seedOnFirstOpen = false,
-        seedItems = {},
-        stash = { slots = 10, weight = 5000 }
+        stash = { slots = 10, weight = 8000 },
+        seedOnFirstOpen = true,
+        seedItems = {
+            { name = 'bandage', count = 2 }
+        }
     }
 }
 
@@ -116,8 +132,8 @@ Config.Points = {
         radius = 1.8,
         jobs = { police = 0 },
         bags = { 'patrolbag', 'firstaid' },
-        entity = { kind = 'ped', model = `s_m_y_cop_01`, offsetZ = -1.0, freeze = true, invincible = true },
-        target = { enabled = false, model = `prop_cs_cardbox_01`, offsetZ = -1.0, invisible = true }
+        entity = { kind = 'ped', model = 's_m_y_cop_01', offsetZ = -1.0, freeze = true, invincible = true },
+        target = { enabled = false, model = 'prop_cs_cardbox_01', offsetZ = -1.0, invisible = true }
     },
     {
         id = 'ems_station',
@@ -126,8 +142,8 @@ Config.Points = {
         radius = 1.8,
         jobs = { ambulance = 0 },
         bags = { 'manv', 'firstaid' },
-        entity = { kind = 'prop', model = `v_med_cor_emergencybox`, offsetZ = -1.0, freeze = true, invincible = true },
-        target = { enabled = false, model = `prop_cs_cardbox_01`, offsetZ = -1.0, invisible = true }
+        entity = { kind = 'prop', model = 'v_med_cor_emergencybox', offsetZ = -1.0, freeze = true, invincible = true },
+        target = { enabled = false, model = 'prop_cs_cardbox_01', offsetZ = -1.0, invisible = true }
     },
     {
         id = 'shop_vehicle',
@@ -137,6 +153,6 @@ Config.Points = {
         jobs = {},
         bags = { 'kfz_kit' },
         entity = { kind = 'marker' },
-        target = { enabled = false, model = `prop_cs_cardbox_01`, offsetZ = -1.0, invisible = true }
+        target = { enabled = false, model = 'prop_cs_cardbox_01', offsetZ = -1.0, invisible = true }
     }
 }

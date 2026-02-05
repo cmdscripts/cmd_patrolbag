@@ -223,6 +223,11 @@ RegisterNetEvent('cmd_patrolbag:openClient', function(invId)
     exports.ox_inventory:openInventory('stash', invId)
 end)
 
+exports('useBag', function(data, slot)
+    if not slot or not slot.slot then return end
+    TriggerServerEvent('cmd_patrolbag:onUse', slot.slot)
+end)
+
 RegisterNetEvent('cmd_patrolbag:notify', function(title, description, kind)
     Config.UI.Notify(title, description, kind)
 end)
